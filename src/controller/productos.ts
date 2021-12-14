@@ -1,0 +1,86 @@
+import { Request, Response, NextFunction, query } from 'express';
+import { ProductQuery } from '../models/products/products.interface';
+import { productsAPI } from '../apis/productos'
+
+class Producto {
+
+  /*
+  Obtiene desde la persistancia de productos el producto que coincide con el id o, si no se pasa un producto por params
+  responde con todo el array de los mismos
+  */
+  async getProducts(req: Request, res: Response) {
+    const {id}=req.params;
+    const { nombre, stockMin , stockMax , precioMin , precioMax, codigo } = req.query;
+    if (id) {
+      return res.json({
+        data: await productsAPI.getProducts(id),
+      });
+    }
+    
+    const query: ProductQuery ={};
+
+    if(nombre) query.nombre = nombre.toString();
+    if(codigo) query.codigo = codigo.toString();
+    if(stockMin) query.stockMin = Number(stockMin);
+    if(stockMax) query.stockMax = Number(stockMax);
+    if(precioMin) query.precioMin = Number(precioMin);
+    if(precioMax) query.precioMax = Number(precioMax);
+
+
+    if(Object.keys(query).length){
+      const productos = await productsAPI.query(query);
+
+      if (!productos.length) {
+        return res.status(404).json({
+          msg: 'Producto no encontrado',
+        });
+      }
+      return res.json({
+        data: productos,
+      });
+    }
+
+    return res.json({
+      data: await productsAPI.getProducts(),
+    });
+  }
+  /*
+    persiste el archivo enviado en el array de productos del sistema
+  */
+  async addProducts(req: Request, res: Response) {
+    const newItem = await productsAPI.addProduct(req.body);
+
+    return res.json({
+      msg: 'producto agregado con exito',
+      data: newItem,
+    });
+  }
+  /*
+    Actualiza el producto de la base de datos que corresponde al id enviado
+  */ 
+  async updateProducts(req: Request, res: Response) {
+    const {id} = req.params;
+    const updatedProduct= await productsAPI.updateProduct(id, req.body)
+    return res.json({
+      msg: 'Producto Actualizado',
+      data: updatedProduct
+    });
+  }
+  /*
+    Elmina el producto de la base de datos que corresponde al id enviado
+  */ 
+  async deleteProducts(req: Request, res: Response) {
+    
+    const {id} = req.params;
+
+    const deletedProduct=await productsAPI.deleteProduct(id);
+    console.log(deletedProduct);
+    
+    return res.json({
+      msg: 'producto borrado',
+      data: deletedProduct
+    });
+  }
+}
+
+export const productosController = new Producto();
